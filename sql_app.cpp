@@ -6,6 +6,7 @@
 namespace App {
     std::vector<int> selected_fields;
     static std::vector<std::string> insert_buf;
+    static bool select_flag;
     void RenderUI() {
 
         static bool opt_fullscreen = true;
@@ -85,6 +86,7 @@ namespace App {
         ImGui::Begin("Settings");
         SQL sql;
         static std::vector<Table> created_tables;
+        static std::vector<Table> select_tables;
         static std::vector<string> fields;
 
         // Choosing which Table will appear in GUI tab
@@ -100,7 +102,7 @@ namespace App {
 
 
         ImGui::ListBox("Tables", &table_current_list, table_items.data(), table_items.size());
-        ImGui::Text(std::to_string(table_current_list).c_str());
+        //ImGui::Text(std::to_string(table_current_list).c_str());
         static string selected_table;
         if (tables.size() > 0 && table_current_list >= 0 && table_current_list <= tables.size()) {
             selected_table = tables[table_current_list];
@@ -113,21 +115,25 @@ namespace App {
             }
 
             // Remove Table Button
-            if (ImGui::Button("Remove Table")) {
+            if (ImGui::Button("Remove Table") && table_current_list >= 0) {
+                created_tables.erase(created_tables.begin() + table_current_list);
                 tables.erase(tables.begin() + table_current_list);
                 if (table_current_list >= tables.size()) {
                     table_current_list = tables.size() - 1;
+                    table_current_combo = table_current_list;
                 }
             }
         }
         else {
             table_current_list = -1;
-            ImGui::Text("No tables to remove.");
+            table_current_combo = -1;
+            ImGui::Text("No tables available.");
         }
 
-        if (table_current_list >= 0) {
+        
+        if (created_tables.size() > 0) {
 
-            RenderTable(created_tables[table_current_list]);
+            RenderTable(created_tables);
         }
 
 
@@ -177,7 +183,6 @@ namespace App {
 
         }
         else {
-            /*static std::vector<std::string> insert_buf;*/
 
             ImGui::Combo("Table", &table_current_combo, table_items.data(), tables.size());
 
@@ -198,7 +203,7 @@ namespace App {
             }
 
             // Select Command
-            else if (command_current == 2 && created_tables.size() > 0) {
+            else if (command_current == 2 && created_tables.size() > 0 && table_current_combo >= 0) {
                 ImGui::Text("Select Fields");
                 fields = created_tables[table_current_combo].get_fields();
 
@@ -215,7 +220,7 @@ namespace App {
 
         if (ImGui::Button(commands[command_current])) {
             std::string table_name(table_name_buffer);
-            // Create
+            // Create   
             if (command_current == 0) {
                 auto it = std::find(tables.begin(), tables.end(), table_name);
 
@@ -240,14 +245,14 @@ namespace App {
             }
 
             // Insert
-            else if (command_current == 1) {
+            else if (command_current == 1 && created_tables.size() > 0) {
                 created_tables[table_current_combo].insert_into(insert_buf);
 
             }
 
             // Select
-            else if (command_current == 2) {
-
+            else if (command_current == 2 && created_tables.size() > 0) {
+                table_name = tables[table_current_combo];
                 vector<string> checked_fields;
                 for (int i = 0; i < selected_fields.size(); i++) {
                     if (selected_fields[i] == 1) {
@@ -265,9 +270,14 @@ namespace App {
                 command_str += " from ";
                 command_str += table_name;
 
-                RenderTable(sql.command(command_str));
-
+                select_tables.push_back(sql.command(command_str));
+                select_flag = true;
+                //RenderSelectTable(sql.command(command_str));
             }
+        }
+
+        if (select_flag) {
+            RenderSelectTable(select_tables[select_tables.size()-1]);
         }
 
         ImGui::SeparatorText("Batch");
@@ -282,8 +292,56 @@ namespace App {
 	}
 
     //void RenderTable(std::string table_name) {
-    void RenderTable(Table table) {
+    void RenderTable(std::vector<Table> tables) {
         ImGui::Begin("Tables");
+        // Expose a few Borders related flags interactively
+        enum ContentsType { CT_Text, CT_FillButton };
+        static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
+        static bool display_headers = true;
+        static int contents_type = CT_Text;
+
+        for (Table table : tables) {
+
+            if (ImGui::BeginTable(table.get_file().c_str(), table.get_num_fields(), flags))
+            {
+                for (int i = 0; i < table.get_num_fields(); i++) {
+                    ImGui::TableSetupColumn(table.get_fields()[i].c_str());
+                }
+                ImGui::TableHeadersRow();
+     
+                FileRecord rec;
+                fstream f;
+                open_fileRW(f, table.get_file().c_str());
+                long recno = 0;
+
+                vector<string> record;
+                for (int row = 0; row < table.get_last_rec(); row++)
+                {
+                    rec.read(f, recno);
+                    record = rec.get_record();
+                    recno++;
+
+                    ImGui::TableNextRow();
+                    for (int column = 0; column < table.get_num_fields(); column++)
+                    {
+                        ImGui::TableSetColumnIndex(column);
+                        char buf[32];
+
+                        sprintf_s(buf, record[column].c_str(), column, row);
+                        if (contents_type == CT_Text)
+                            ImGui::TextUnformatted(buf);
+                        else if (contents_type == CT_FillButton)
+                            ImGui::Button(buf, ImVec2(-FLT_MIN, 0.0f));
+                    }
+                }
+                ImGui::EndTable();
+            }
+        }
+        ImGui::End();
+    }
+
+    void RenderSelectTable(Table table) {
+        ImGui::Begin("Select Table");
         // Expose a few Borders related flags interactively
         enum ContentsType { CT_Text, CT_FillButton };
         static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
@@ -296,7 +354,7 @@ namespace App {
                 ImGui::TableSetupColumn(table.get_fields()[i].c_str());
             }
             ImGui::TableHeadersRow();
-     
+
             FileRecord rec;
             fstream f;
             open_fileRW(f, table.get_file().c_str());

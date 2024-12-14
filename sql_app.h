@@ -5,5 +5,6 @@
 
 namespace App {
 	void RenderUI();
-	void RenderTable(Table table);
+	void RenderTable(std::vector<Table> tables);
+	void RenderSelectTable(Table table);
 }
