@@ -16,21 +16,29 @@ struct FileRecord {
     }
 
     FileRecord(vector<string> vec) {
+        _record[0][0] = '\0';
         for (int i = 0; i < vec.size(); i++) {
-            strncpy(_record[i], vec[i].c_str(), MAX);
-            _record[i][MAX+1] = '\0';
+            strncpy_s(_record[i], vec[i].c_str(), MAX);
+            _record[i][MAX + 1] = '\0';
+            //_record[i][MAX] = '\0';
         }
 
         recno = -1;
     }
 
     FileRecord(char str[]) {
-        strncpy(_record[0], str, MAX);
+        strncpy_s(_record[0], str, MAX);
         _record[0][MAX + 1] = '\0';
+        //_record[0][MAX] = '\0';
+
+        recno = -1;
     }
     FileRecord(string s) {
-        strncpy(_record[0], s.c_str(), MAX);
+        strncpy_s(_record[0], s.c_str(), MAX);
         _record[0][MAX + 1] = '\0';
+        //_record[0][MAX] = '\0';
+        
+        recno = -1;
     }
 
     vector<string> get_record();
@@ -58,8 +66,8 @@ long FileRecord::write(fstream& outs) {
     return pos / sizeof(_record);
 }
 
-long FileRecord::read(fstream& ins, long recno) {
-    long pos = recno * sizeof(_record);
+long FileRecord::read(fstream& ins, long recnum) {
+    long pos = recnum * sizeof(_record);
     ins.seekg(pos, ios_base::beg);
     ins.read(&_record[0][0], sizeof(_record));
 

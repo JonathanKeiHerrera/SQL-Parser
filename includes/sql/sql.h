@@ -16,6 +16,7 @@ class SQL {
 public:
     SQL();
     SQL(string file_name);
+    void batch(string file_name);
 
     Table command(string command);
     vector<long> select_recnos() { return t.select_recnos(); }
@@ -44,12 +45,15 @@ SQL::SQL() {}
 //  Continuously calls command function to run commands from each line
 SQL::SQL(string file_name) {
 
+    batch(file_name);
+}
+
+void SQL::batch(string file_name) {
     fstream f;
     open_fileRW_text(f, file_name.c_str());
     string str = "";
 
     cout << "> " << file_name << endl;
-
 
     f.seekg(0, std::ios::beg);
     if (f.peek() == EOF) {

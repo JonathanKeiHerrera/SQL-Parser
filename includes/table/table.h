@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TABLE_H
+#define TABLE_H
 
 #include "includes/binary_files/file_record.h"
 #include "includes/binary_files/utilities.h"
@@ -49,6 +50,8 @@ public:
 
     vector<MMap<string, long>>& get_indices() { return _indices; }
     Map<string, long>& get_field_map() { return _field_map; }
+    int get_num_fields() { return _field_map.size(); }
+    long get_last_rec() { return _last_record; }
 
     string get_file() { return _file_name; }
     string get_field_file() { return _field_file_name; }
@@ -78,7 +81,7 @@ Table::Table() {
     _name = "table";
     _file_name = _name + ".bin";
     _field_file_name = _name + "_fields.txt";
-    serial++;
+    //serial++;
 
     fstream f;
     open_fileW(f, _file_name.c_str());
@@ -91,7 +94,7 @@ Table::Table(const string& name) {
     _name = name;
     _file_name = _name + ".bin";
     _field_file_name = _name + "_fields.txt";
-    serial++;
+    //serial++;
 
     // Retrieve fields from field file: insert into field_names
     fstream f;
@@ -120,7 +123,7 @@ Table::Table(const string& name) {
 }
 
 Table::Table(const string& name, const vector<string>& fields) {
-    serial++;
+    //serial++;
     _empty = false;
     _last_record = 0;
 
@@ -191,6 +194,7 @@ int Table::insert_into(const vector<string>& fields) {
 
 Table Table::select_all() {
     Table result(_name + to_string(serial), _field_names);
+    serial++;
     fstream f;
     open_fileRW(f, _file_name.c_str());
 
@@ -211,6 +215,7 @@ Table Table::select_all() {
 Table Table::select_all(vector<string> fields) {
 
     Table result(_name + to_string(serial), fields);
+    serial++;
     fstream f;
     open_fileRW(f, _file_name.c_str());
 
@@ -456,6 +461,7 @@ vector<long> Table::cond(Queue<Token*>& post) {
 
 Table Table::vector_to_table(const vector<string>& fields, const vector<long>& vector_of_recnos) {
     Table t(_name + to_string(serial), fields);
+    serial++;
 
     FileRecord record;
     fstream f;
@@ -507,3 +513,4 @@ void Table::adjust_size(vector<string> fields, vector<string>& record) {
     }
 }
 
+#endif
