@@ -24,13 +24,14 @@ public:
     Table create_make();
     Table insert();
     vector<Table> get_tables() { return batched_tables; }
-
+    vector<string> get_commands() { return batched_commands; }
 private:
     Parser p;
     Table t;
     vector<string> table_names;
     vector<long> _select_recnos;
     vector<Table> batched_tables;
+    vector<string> batched_commands;
 };
 
 // DEFAULT CONSTRUCTOR:
@@ -42,6 +43,7 @@ SQL::SQL() {}
 //  Continuously calls command function to run commands from each line
 SQL::SQL(string file_name) {
     batched_tables.clear();
+    batched_commands.clear();
     batch(file_name);
 }
 
@@ -58,7 +60,6 @@ void SQL::batch(string file_name) {
     }
 
     while (getline(f, str)) {
-        cout << "Reading line: " << str << endl;
         if (str.substr(0, 2) == "//") {
             cout << str.substr(2) << endl;
         }
@@ -71,6 +72,8 @@ void SQL::batch(string file_name) {
         }
     }
 
+    // Can remove unneccesary files at the end of a batch process
+    // Will crash the gui if uncommented here
     /*for (string table : table_names) {
         remove(table.c_str());
     }
@@ -102,6 +105,7 @@ Table SQL::command(string command) {
     if (instruction[0] == "select") {
         t = select();
         cout << t << endl;
+        batched_commands.push_back(command);
         batched_tables.push_back(t);
     }
     else if (instruction[0] == "create" || instruction[0] == "make") {

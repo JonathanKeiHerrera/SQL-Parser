@@ -12,6 +12,7 @@ namespace App {
     static bool select_flag;
     static bool batch_flag = false;
     static std::vector<Table> batch_tables;
+    static std::vector<std::string> batch_commands;
 
     void RenderUI() {
 
@@ -146,8 +147,11 @@ namespace App {
                 static bool display_headers = true;
                 static int contents_type = CT_Text;
 
+                int counter = 0;
                 for (Table table : created_tables) {
-
+                    //ImGui::Text(table.get_file().c_str());
+                    ImGui::Text(tables[counter].c_str());
+                    counter++;
                     if (ImGui::BeginTable(table.get_file().c_str(), table.get_num_fields(), flags))
                     {
                         for (int i = 0; i < table.get_num_fields(); i++) {
@@ -181,6 +185,7 @@ namespace App {
                             }
                         }
                         ImGui::EndTable();
+                        ImGui::Dummy(ImVec2(0.0f, 20.0f));
                     }
                 }
                 ImGui::End();
@@ -377,31 +382,30 @@ namespace App {
 
         ImGui::SeparatorText("Batch");
         static ImGuiInputTextFlags flags = ImGuiInputTextFlags_EscapeClearsAll;
-        //char file_path[128] = "";
         static char batch_file_buffer[128];
 
-
         ImGui::InputText("File Path", batch_file_buffer, IM_ARRAYSIZE(batch_file_buffer), flags);
-        ImGui::Text("Batch Flag: %s", batch_flag ? "True" : "False");
         if (ImGui::Button("Batch Open")) {
             std::string file_path(batch_file_buffer);
             batch_flag = true;
+
             sql.batch(file_path);
             batch_tables = sql.get_tables();
+            batch_commands = sql.get_commands();
         }
 
         if (batch_flag) {
             ImGui::Begin("Batch");
-
-            
 
             enum ContentsType { CT_Text, CT_FillButton };
             static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
             static bool display_headers = true;
             static int contents_type = CT_Text;
 
+            int counter = 0;
             for (Table table : batch_tables) {
-
+                ImGui::Text(batch_commands[counter].c_str());
+                counter++;
                 if (ImGui::BeginTable(table.get_file().c_str(), table.get_num_fields(), flags))
                 {
                     for (int i = 0; i < table.get_num_fields(); i++) {
@@ -435,16 +439,14 @@ namespace App {
                         }
                     }
                     ImGui::EndTable();
+                    ImGui::Dummy(ImVec2(0.0f, 20.0f));
                 }
             }
             ImGui::End();
         }
         
-
         ImGui::End();
 
-
-        ImGui::ShowDemoWindow();
         ImGui::End();
 
 	}
