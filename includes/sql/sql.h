@@ -1,8 +1,7 @@
-#pragma once
+#ifndef SQL_H
+#define SQL_H
 
 #include "../../includes/parser/parser.h"
-#include "../../includes/table/table.h"
-#include "../../includes/binary_files/utilities.h"
 
 #include <iostream>
 #include <fstream>
@@ -24,16 +23,14 @@ public:
     Table select();
     Table create_make();
     Table insert();
-
-    friend ostream& operator << (ostream& outs, SQL sequel) {
-        return outs;
-    }
+    vector<Table> get_tables() { return batched_tables; }
 
 private:
     Parser p;
     Table t;
     vector<string> table_names;
     vector<long> _select_recnos;
+    vector<Table> batched_tables;
 };
 
 // DEFAULT CONSTRUCTOR:
@@ -44,7 +41,7 @@ SQL::SQL() {}
 //  ARGUMENTS: file_name - Name of batch file to run commands from
 //  Continuously calls command function to run commands from each line
 SQL::SQL(string file_name) {
-
+    batched_tables.clear();
     batch(file_name);
 }
 
@@ -74,10 +71,10 @@ void SQL::batch(string file_name) {
         }
     }
 
-    for (string table : table_names) {
+    /*for (string table : table_names) {
         remove(table.c_str());
     }
-    remove("table.bin");
+    remove("table.bin");*/
 
     f.close();
 }
@@ -105,7 +102,7 @@ Table SQL::command(string command) {
     if (instruction[0] == "select") {
         t = select();
         cout << t << endl;
-
+        batched_tables.push_back(t);
     }
     else if (instruction[0] == "create" || instruction[0] == "make") {
         t = create_make();
@@ -170,3 +167,4 @@ Table SQL::insert() {
     t.insert_into(values);
     return t;
 }
+#endif

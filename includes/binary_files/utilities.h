@@ -1,4 +1,10 @@
-#pragma once
+#ifndef UTILITIES_H
+#define UTILITIES_H
+
+#include <iostream>
+#include <fstream>
+
+using namespace std;
 
 bool file_exists(const char filename[]);
 void open_fileRW(fstream& f, const char filename[]);
@@ -87,3 +93,4 @@ void open_fileW_text(fstream& f, const char filename[]) {
 
 
 
+#endif

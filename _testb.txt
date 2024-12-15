@@ -1,0 +1,84 @@
+
+// ------ student table ------ 
+make table student fields 	fname, 			lname, 		major, 				age
+insert into student values 	Flo, 			Yao, 		CS, 				20
+insert into student values 	"Flo", 			"Jackson", 	Math,	 			21
+insert into student values 	"Flo", 			"Jackson", 	Math,	 			15
+insert into student values 	Calvin, 		Woo, 		Physics,			22
+insert into student values 	Calvin, 		Jackson, 	Math,			    25
+insert into student values 	Calvin, 		"Del Rio", 	CS,			        23
+insert into student values 	"Anna Grace", 	"Del Rio", 	CS,	 				22
+insert into student values 	"Anna Grace", 	"Jackson", 	Math,	 			21
+insert into student values 	"Anna Grace", 	"Yao", 	    Physics,	 		20
+
+select * from student
+
+
+// ------ LOGICAL ------
+// LESS THAN BELOW EXISTING
+select * from student where age < 15
+
+// LESS THAN EXISTING
+select * from student where age < 22
+
+// LESS THAN ABOVE EXISTING
+select * from student where age < 25
+
+// LESS THAN EQUAL BELOW EXISTING
+select * from student where age <= 15
+
+// LESS THAN EQUAL EXISTING
+select * from student where age <= 22
+
+// LESS THAN EQUAL ABOVE EXISTING
+select * from student where age <= 25
+
+// GREATER THAN BELOW EXISTING
+select * from student where age > 15
+
+// GREATER THAN EXISTING
+select * from student where age > 21
+
+// GREATER THAN ABOVE EXISTING 
+select * from student where age > 25
+
+// GREATER THAN EQUAL BELOW EXISTING
+select * from student where age >= 15
+
+// GREATER THAN EQUAL EXISTING
+select * from student where age >= 22
+
+// GREATER THAN EQUAL ABOVE EXISTING
+select * from student where age >= 25
+
+// EQUAL BELOW EXISTING
+select * from student where age = 15
+
+// EQUAL EXISTING
+select * from student where age = 22
+
+// EQUAL ABOVE EXISTING
+select * from student where age = 25
+
+
+
+// ------ LOGICAL ------
+// AND OR AND
+select * from student where fname = Flo and lname < K or major = CS and age < 22
+
+// AND AND AND OR AND AND OR OR AND
+select * from student where fname = Flo and fname = "Anna Grace" and lname < M or major = Physics or age < 21 and major = CS
+
+// OR AND OR OR AND AND OR
+select * from student where fname = Flo or fname = "Anna Grace" and lname < M or major = Physics or age < 21 and major = cs and age > 20 or lname = Woo 
+
+
+// ------ PARENTHESIS ------
+select * from student where ((lname < H )))
+select * from student where ((lname < H ) and (age > 20))
+select * from student where ((lname < H ) and (age > 20))
+select * from student where (((((((((lname = Flo)))))) or lname = Yao)) and age < 30)
+
+select * from student where ()lname < W or age < 22
+select * from student where (lname < W or age < 22
+select * from student where )(lname < W or age < 22

@@ -3,10 +3,16 @@
 #include "includes/sql/sql.h"
 #include "includes/table/table.h"
 
+#include <iostream>
+#include <string>
+
 namespace App {
     std::vector<int> selected_fields;
     static std::vector<std::string> insert_buf;
     static bool select_flag;
+    static bool batch_flag = false;
+    static std::vector<Table> batch_tables;
+
     void RenderUI() {
 
         static bool opt_fullscreen = true;
@@ -133,7 +139,51 @@ namespace App {
         
         if (created_tables.size() > 0) {
 
-            RenderTable(created_tables);
+                ImGui::Begin("Tables");
+                // Expose a few Borders related flags interactively
+                enum ContentsType { CT_Text, CT_FillButton };
+                static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
+                static bool display_headers = true;
+                static int contents_type = CT_Text;
+
+                for (Table table : created_tables) {
+
+                    if (ImGui::BeginTable(table.get_file().c_str(), table.get_num_fields(), flags))
+                    {
+                        for (int i = 0; i < table.get_num_fields(); i++) {
+                            ImGui::TableSetupColumn(table.get_fields()[i].c_str());
+                        }
+                        ImGui::TableHeadersRow();
+
+                        FileRecord rec;
+                        fstream f;
+                        open_fileRW(f, table.get_file().c_str());
+                        long recno = 0;
+
+                        vector<string> record;
+                        for (int row = 0; row < table.get_last_rec(); row++)
+                        {
+                            rec.read(f, recno);
+                            record = rec.get_record();
+                            recno++;
+
+                            ImGui::TableNextRow();
+                            for (int column = 0; column < table.get_num_fields(); column++)
+                            {
+                                ImGui::TableSetColumnIndex(column);
+                                char buf[32];
+
+                                sprintf_s(buf, record[column].c_str(), column, row);
+                                if (contents_type == CT_Text)
+                                    ImGui::TextUnformatted(buf);
+                                else if (contents_type == CT_FillButton)
+                                    ImGui::Button(buf, ImVec2(-FLT_MIN, 0.0f));
+                            }
+                        }
+                        ImGui::EndTable();
+                    }
+                }
+                ImGui::End();
         }
 
 
@@ -194,7 +244,8 @@ namespace App {
                         char buf[32];
                         strncpy_s(buf, insert_buf[i].c_str(), sizeof(buf) - 1);
                         
-                        if (ImGui::InputText(("insert_field" + std::to_string(i)).c_str(), buf, sizeof(buf))) {
+                        //if (ImGui::InputText(("insert_field" + std::to_string(i)).c_str(), buf, sizeof(buf))) {
+                        if (ImGui::InputText(created_tables[table_current_combo].get_fields()[i].c_str(), buf, sizeof(buf))) {
                             insert_buf[i] = std::string(buf);
                         }
                     }
@@ -272,35 +323,18 @@ namespace App {
 
                 select_tables.push_back(sql.command(command_str));
                 select_flag = true;
-                //RenderSelectTable(sql.command(command_str));
+
             }
         }
 
         if (select_flag) {
-            RenderSelectTable(select_tables[select_tables.size()-1]);
-        }
-
-        ImGui::SeparatorText("Batch");
-        ImGui::End();
-
-
-
-
-        ImGui::ShowDemoWindow();
-        ImGui::End();
-
-	}
-
-    //void RenderTable(std::string table_name) {
-    void RenderTable(std::vector<Table> tables) {
-        ImGui::Begin("Tables");
-        // Expose a few Borders related flags interactively
-        enum ContentsType { CT_Text, CT_FillButton };
-        static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
-        static bool display_headers = true;
-        static int contents_type = CT_Text;
-
-        for (Table table : tables) {
+            Table table = select_tables[select_tables.size() - 1];
+            ImGui::Begin("Select Table");
+            // Expose a few Borders related flags interactively
+            enum ContentsType { CT_Text, CT_FillButton };
+            static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
+            static bool display_headers = true;
+            static int contents_type = CT_Text;
 
             if (ImGui::BeginTable(table.get_file().c_str(), table.get_num_fields(), flags))
             {
@@ -308,7 +342,7 @@ namespace App {
                     ImGui::TableSetupColumn(table.get_fields()[i].c_str());
                 }
                 ImGui::TableHeadersRow();
-     
+
                 FileRecord rec;
                 fstream f;
                 open_fileRW(f, table.get_file().c_str());
@@ -334,54 +368,86 @@ namespace App {
                             ImGui::Button(buf, ImVec2(-FLT_MIN, 0.0f));
                     }
                 }
+                f.close();
                 ImGui::EndTable();
             }
+            ImGui::End();
+
         }
-        ImGui::End();
-    }
 
-    void RenderSelectTable(Table table) {
-        ImGui::Begin("Select Table");
-        // Expose a few Borders related flags interactively
-        enum ContentsType { CT_Text, CT_FillButton };
-        static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
-        static bool display_headers = true;
-        static int contents_type = CT_Text;
+        ImGui::SeparatorText("Batch");
+        static ImGuiInputTextFlags flags = ImGuiInputTextFlags_EscapeClearsAll;
+        //char file_path[128] = "";
+        static char batch_file_buffer[128];
 
-        if (ImGui::BeginTable(table.get_file().c_str(), table.get_num_fields(), flags))
-        {
-            for (int i = 0; i < table.get_num_fields(); i++) {
-                ImGui::TableSetupColumn(table.get_fields()[i].c_str());
-            }
-            ImGui::TableHeadersRow();
 
-            FileRecord rec;
-            fstream f;
-            open_fileRW(f, table.get_file().c_str());
-            long recno = 0;
+        ImGui::InputText("File Path", batch_file_buffer, IM_ARRAYSIZE(batch_file_buffer), flags);
+        ImGui::Text("Batch Flag: %s", batch_flag ? "True" : "False");
+        if (ImGui::Button("Batch Open")) {
+            std::string file_path(batch_file_buffer);
+            batch_flag = true;
+            sql.batch(file_path);
+            batch_tables = sql.get_tables();
+        }
 
-            vector<string> record;
-            for (int row = 0; row < table.get_last_rec(); row++)
-            {
-                rec.read(f, recno);
-                record = rec.get_record();
-                recno++;
+        if (batch_flag) {
+            ImGui::Begin("Batch");
 
-                ImGui::TableNextRow();
-                for (int column = 0; column < table.get_num_fields(); column++)
+            
+
+            enum ContentsType { CT_Text, CT_FillButton };
+            static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
+            static bool display_headers = true;
+            static int contents_type = CT_Text;
+
+            for (Table table : batch_tables) {
+
+                if (ImGui::BeginTable(table.get_file().c_str(), table.get_num_fields(), flags))
                 {
-                    ImGui::TableSetColumnIndex(column);
-                    char buf[32];
+                    for (int i = 0; i < table.get_num_fields(); i++) {
+                        ImGui::TableSetupColumn(table.get_fields()[i].c_str());
+                    }
+                    ImGui::TableHeadersRow();
 
-                    sprintf_s(buf, record[column].c_str(), column, row);
-                    if (contents_type == CT_Text)
-                        ImGui::TextUnformatted(buf);
-                    else if (contents_type == CT_FillButton)
-                        ImGui::Button(buf, ImVec2(-FLT_MIN, 0.0f));
+                    FileRecord rec;
+                    fstream f;
+                    open_fileRW(f, table.get_file().c_str());
+                    long recno = 0;
+
+                    vector<string> record;
+                    for (int row = 0; row < table.get_last_rec(); row++)
+                    {
+                        rec.read(f, recno);
+                        record = rec.get_record();
+                        recno++;
+
+                        ImGui::TableNextRow();
+                        for (int column = 0; column < table.get_num_fields(); column++)
+                        {
+                            ImGui::TableSetColumnIndex(column);
+                            char buf[32];
+
+                            sprintf_s(buf, record[column].c_str(), column, row);
+                            if (contents_type == CT_Text)
+                                ImGui::TextUnformatted(buf);
+                            else if (contents_type == CT_FillButton)
+                                ImGui::Button(buf, ImVec2(-FLT_MIN, 0.0f));
+                        }
+                    }
+                    ImGui::EndTable();
                 }
             }
-            ImGui::EndTable();
+            ImGui::End();
         }
+        
+
         ImGui::End();
-    }
+
+
+        ImGui::ShowDemoWindow();
+        ImGui::End();
+
+	}
 } 
+
+

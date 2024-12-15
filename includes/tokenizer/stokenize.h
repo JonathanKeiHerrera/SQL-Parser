@@ -1,4 +1,5 @@
-#pragma once
+#ifndef STOKENIZE_H
+#define STOKENIZE_H
 
 #include "token.h"
 #include "constants.h"
@@ -234,3 +235,5 @@ STokenizer& operator >> (STokenizer& stk, Token& t) {
     t = Token(token, type);
     return stk;
 }
+
+#endif

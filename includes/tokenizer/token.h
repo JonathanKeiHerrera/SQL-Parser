@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TOKEN_H
+#define TOKEN_H
 
 #include <iostream>
 #include <vector>
@@ -265,3 +266,4 @@ public:
     RightPar() : Operator(")", RIGHT_PAR) {}
     TOKEN_TYPES type_of() { return RIGHT_PAR; }
 };
+#endif
